@@ -1,8 +1,9 @@
-# Convert Money
+![Convert Money Screenshot](android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png)
+# Convert Money 
 
 Convert Money é um aplicativo simples de conversão de moedas que permite que você converta o valor entre diferentes moedas em tempo real. O aplicativo utiliza uma API de cotações de moedas para obter as taxas de câmbio atualizadas a cada 30 segundos.
 
-![Convert Money Screenshot](android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png)
+
 
 ## Funcionalidades
 
