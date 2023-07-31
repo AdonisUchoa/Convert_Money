@@ -41,9 +41,11 @@ class _ConvertMoneyPageState extends State<ConvertMoneyPage> {
     Currency("BTC", "BTC"),
   ];
 
-  String _fromCurrency = "BTC";
+  String _fromCurrency = "USD";
   String _toCurrency = "BRL";
   Map<String, dynamic> _exchangeRates = {};
+  TextEditingController _amountController = TextEditingController();
+  double _convertedValue = 0.0;
 
   @override
   void initState() {
@@ -131,6 +133,27 @@ class _ConvertMoneyPageState extends State<ConvertMoneyPage> {
                 ),
               ],
             ),
+            const SizedBox(height: 20),
+            Container(
+              width: 200,
+              child: TextField(
+                controller: _amountController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Amount',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _convertCurrency,
+              child: Text('Convert'),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Exchange Rate: ${_getExchangeRate()}',
+            ),
           ],
         ),
       ),
@@ -141,6 +164,16 @@ class _ConvertMoneyPageState extends State<ConvertMoneyPage> {
     if (_exchangeRates.isEmpty) {
       return "Loading...";
     } else {
+      final formattedValue = NumberFormat.currency(
+        locale: 'en_US',
+        symbol: '',
+      ).format(_convertedValue);
+      return formattedValue;
+    }
+  }
+
+  String _getExchangeRate() {
+    if (_exchangeRates.isNotEmpty) {
       final conversionValue = _getConversionValue(_fromCurrency, _toCurrency);
       if (conversionValue != null) {
         final formattedValue = NumberFormat.currency(
@@ -151,6 +184,19 @@ class _ConvertMoneyPageState extends State<ConvertMoneyPage> {
       }
     }
     return "N/A";
+  }
+
+  void _convertCurrency() {
+    if (_exchangeRates.isNotEmpty) {
+      final conversionValue = _getConversionValue(_fromCurrency, _toCurrency);
+      final amount = double.tryParse(_amountController.text) ?? 0.0;
+
+      if (conversionValue != null) {
+        setState(() {
+          _convertedValue = amount * conversionValue;
+        });
+      }
+    }
   }
 
   double? _getConversionValue(String fromCurrency, String toCurrency) {
