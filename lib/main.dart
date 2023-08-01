@@ -61,6 +61,7 @@ class _ConvertMoneyPageState extends State<ConvertMoneyPage> {
     if (response.statusCode == 200) {
       setState(() {
         _exchangeRates = json.decode(response.body);
+        _updateConvertedValue();
       });
     } else {
       throw Exception('Failed to load exchange rates');
@@ -106,8 +107,8 @@ class _ConvertMoneyPageState extends State<ConvertMoneyPage> {
                       onChanged: (String? newValue) {
                         setState(() {
                           _fromCurrency = newValue!;
+                          _getExchangeRates();
                         });
-                        _getExchangeRates();
                       },
                     ),
                     Icon(Icons.arrow_forward),
@@ -117,8 +118,8 @@ class _ConvertMoneyPageState extends State<ConvertMoneyPage> {
                       onChanged: (String? newValue) {
                         setState(() {
                           _toCurrency = newValue!;
+                          _getExchangeRates();
                         });
-                        _getExchangeRates();
                       },
                     ),
                   ],
@@ -137,9 +138,7 @@ class _ConvertMoneyPageState extends State<ConvertMoneyPage> {
                   onChanged: (value) {
                     setState(() {
                       _amount = double.tryParse(value) ?? 0.0;
-                      _convertedValue =
-                          _getConversionValue(_fromCurrency, _toCurrency) ??
-                              0.0;
+                      _updateConvertedValue();
                     });
                   },
                 ),
@@ -161,24 +160,26 @@ class _ConvertMoneyPageState extends State<ConvertMoneyPage> {
 
   String _getExchangeRate() {
     if (_exchangeRates.isNotEmpty) {
-      final conversionValue = _getConversionValue(_fromCurrency, _toCurrency);
-      if (conversionValue != null) {
-        return conversionValue.toString();
+      final data = _exchangeRates['$_fromCurrency$_toCurrency'];
+      if (data != null) {
+        final bid = double.tryParse(data['bid']);
+        if (bid != null) {
+          return bid.toString();
+        }
       }
     }
     return "N/A";
   }
 
-  double? _getConversionValue(String fromCurrency, String toCurrency) {
-    if (_exchangeRates.containsKey('$fromCurrency$toCurrency')) {
-      final data = _exchangeRates['$fromCurrency$toCurrency'];
-      if (data != null) {
-        final bid = double.tryParse(data['bid']);
-        if (bid != null) {
-          return bid * _amount;
-        }
+  void _updateConvertedValue() {
+    final data = _exchangeRates['$_fromCurrency$_toCurrency'];
+    if (data != null) {
+      final bid = double.tryParse(data['bid']);
+      if (bid != null) {
+        setState(() {
+          _convertedValue = bid * _amount;
+        });
       }
     }
-    return null;
   }
 }
