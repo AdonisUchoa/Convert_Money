@@ -41,10 +41,10 @@ class _ConvertMoneyPageState extends State<ConvertMoneyPage> {
     Currency("BTC", "BTC"),
   ];
 
-  String _fromCurrency = "USD";
+  String _fromCurrency = "BTC";
   String _toCurrency = "BRL";
   Map<String, dynamic> _exchangeRates = {};
-  TextEditingController _amountController = TextEditingController();
+  double _amount = 1.0;
   double _convertedValue = 0.0;
 
   @override
@@ -67,92 +67,91 @@ class _ConvertMoneyPageState extends State<ConvertMoneyPage> {
     }
   }
 
-  List<Currency> _getFilteredCurrencies() {
-    return _currencies
-        .where((currency) => currency.code != _toCurrency)
-        .toList();
-  }
-
-  List<Currency> _getFilteredToCurrencies() {
-    return _currencies
-        .where((currency) => currency.code != _fromCurrency)
-        .toList();
+  List<DropdownMenuItem<String>> _buildDropdownMenuItems() {
+    return _currencies.map((Currency currency) {
+      return DropdownMenuItem<String>(
+        value: currency.code,
+        child: Text(currency.name),
+      );
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Convert Money'),
+        title: Text('Convert Money'),
+        centerTitle: true,
       ),
-      body: Center(
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'Conversion Result: ${_getConversionResult()}',
-            ),
-            const SizedBox(height: 20),
-            Row(
+            Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('From:'),
-                const SizedBox(width: 10),
-                DropdownButton<String>(
-                  value: _fromCurrency,
-                  items: _getFilteredCurrencies().map((Currency currency) {
-                    return DropdownMenuItem<String>(
-                      value: currency.code,
-                      child: Text(currency.name),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
+                Text(
+                  'Select Currency',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    DropdownButton<String>(
+                      value: _fromCurrency,
+                      items: _buildDropdownMenuItems(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          _fromCurrency = newValue!;
+                        });
+                        _getExchangeRates();
+                      },
+                    ),
+                    Icon(Icons.arrow_forward),
+                    DropdownButton<String>(
+                      value: _toCurrency,
+                      items: _buildDropdownMenuItems(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          _toCurrency = newValue!;
+                        });
+                        _getExchangeRates();
+                      },
+                    ),
+                  ],
+                ),
+                SizedBox(height: 20),
+                Text(
+                  'Current Exchange Rate: ${_getExchangeRate()}',
+                  style: TextStyle(fontSize: 18),
+                ),
+                SizedBox(height: 20),
+                TextField(
+                  decoration: InputDecoration(
+                    labelText: 'Enter Amount',
+                  ),
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) {
                     setState(() {
-                      _fromCurrency = newValue!;
+                      _amount = double.tryParse(value) ?? 0.0;
+                      _convertedValue =
+                          _getConversionValue(_fromCurrency, _toCurrency) ??
+                              0.0;
                     });
-                    _getExchangeRates();
                   },
                 ),
-                const SizedBox(width: 40),
-                const Text('To:'),
-                const SizedBox(width: 10),
-                DropdownButton<String>(
-                  value: _toCurrency,
-                  items: _getFilteredToCurrencies().map((Currency currency) {
-                    return DropdownMenuItem<String>(
-                      value: currency.code,
-                      child: Text(currency.name),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _toCurrency = newValue!;
-                    });
-                    _getExchangeRates();
-                  },
+                SizedBox(height: 20),
+                Text(
+                  'Converted Value: ${NumberFormat.currency(
+                    locale: 'en_US',
+                    symbol: '',
+                  ).format(_convertedValue)}',
+                  style: TextStyle(fontSize: 18),
                 ),
               ],
-            ),
-            const SizedBox(height: 20),
-            Container(
-              width: 200,
-              child: TextField(
-                controller: _amountController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Amount',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _convertCurrency,
-              child: Text('Convert'),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Exchange Rate: ${_getExchangeRate()}',
             ),
           ],
         ),
@@ -160,43 +159,14 @@ class _ConvertMoneyPageState extends State<ConvertMoneyPage> {
     );
   }
 
-  String _getConversionResult() {
-    if (_exchangeRates.isEmpty) {
-      return "Loading...";
-    } else {
-      final formattedValue = NumberFormat.currency(
-        locale: 'en_US',
-        symbol: '',
-      ).format(_convertedValue);
-      return formattedValue;
-    }
-  }
-
   String _getExchangeRate() {
     if (_exchangeRates.isNotEmpty) {
       final conversionValue = _getConversionValue(_fromCurrency, _toCurrency);
       if (conversionValue != null) {
-        final formattedValue = NumberFormat.currency(
-          locale: 'en_US',
-          symbol: '',
-        ).format(conversionValue);
-        return formattedValue;
+        return conversionValue.toString();
       }
     }
     return "N/A";
-  }
-
-  void _convertCurrency() {
-    if (_exchangeRates.isNotEmpty) {
-      final conversionValue = _getConversionValue(_fromCurrency, _toCurrency);
-      final amount = double.tryParse(_amountController.text) ?? 0.0;
-
-      if (conversionValue != null) {
-        setState(() {
-          _convertedValue = amount * conversionValue;
-        });
-      }
-    }
   }
 
   double? _getConversionValue(String fromCurrency, String toCurrency) {
@@ -205,7 +175,7 @@ class _ConvertMoneyPageState extends State<ConvertMoneyPage> {
       if (data != null) {
         final bid = double.tryParse(data['bid']);
         if (bid != null) {
-          return bid;
+          return bid * _amount;
         }
       }
     }
